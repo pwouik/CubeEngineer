@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UIElements;
 using Valve.VR;
 using Valve.VR.Extras;
 struct Element{
@@ -24,6 +25,8 @@ public class BlockGrid : MonoBehaviour
     public float rotationSpeed = 100f;
 
     private float scale = 0.2f;
+    private Vector2 lastPos = Vector2.zero;
+    private Vector3 origin;
 
 
     private Element[,,] grid;
@@ -36,10 +39,12 @@ public class BlockGrid : MonoBehaviour
 
     void Start()
     {
+        Rigidbody rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
         grid = new Element[size, size, size];
         scale = blockPrefabs[0].transform.localScale.x;
-
-        Instantiate(blockPrefabs[1], transform.TransformPoint(new Vector3(size/2 + .5f, size / 2 + .5f, size / 2 + .5f) * scale), Quaternion.identity, transform);
+        origin = new Vector3(size / 2 + .5f, size / 2 + .5f, size / 2 + .5f) * scale;
+        Instantiate(blockPrefabs[1], transform.TransformPoint(Vector3.zero), Quaternion.identity, transform);
 
         /*for (int x = 0; x < size; x++)
             for (int y = 0; y < size; y++)
@@ -58,28 +63,28 @@ public class BlockGrid : MonoBehaviour
 
     void Update()
     {
-        /*Vector2 inputRight = rotateGrid.GetAxis(SteamVR_Input_Sources.RightHand);
+        Vector2 inputRight = rotateGrid.GetAxis(SteamVR_Input_Sources.RightHand);
         Vector2 inputLeft = rotateGrid.GetAxis(SteamVR_Input_Sources.LeftHand);
 
-        Vector2 input = inputRight != Vector2.zero ? inputRight : inputLeft;*/
+        Vector2 pos = inputRight != Vector2.zero ? inputRight : inputLeft;
 
-        Vector2 deltaRight = rotateGrid[SteamVR_Input_Sources.RightHand].delta;
-        Vector2 deltaLeft = rotateGrid[SteamVR_Input_Sources.LeftHand].delta;
-
-        Vector2 delta = deltaRight != Vector2.zero ? deltaRight : deltaLeft;
-        
-
-        if (delta != Vector2.zero)
+        if (pos != Vector2.zero && lastPos != Vector2.zero)
         {
-            float yRotation = delta.x * rotationSpeed;
+            float angleInitial = Mathf.Atan2(lastPos.y, lastPos.x) * Mathf.Rad2Deg;
+            float angleFinal = Mathf.Atan2(pos.y, pos.x) * Mathf.Rad2Deg;
 
-            transform.Rotate(0f, yRotation, 0f, Space.World);
+            float angle = Mathf.DeltaAngle(angleFinal, angleInitial);
+
+            transform.Rotate(0f, angle, 0f, Space.World);
         }
+
+        lastPos = pos;
     }
 
     private void OnPointerClick(object sender, PointerEventArgs e)
     {
-        Vector3 gridPos = transform.InverseTransformPoint(leftPointer.transform.TransformPoint(Vector3.forward * (e.distance - 0.001f))) / (scale);
+        Vector3 gridPos = (transform.InverseTransformPoint(leftPointer.transform.TransformPoint(Vector3.forward * (e.distance - 0.01f))) + origin) / scale;
+        Debug.Log(gridPos);
         Vector3Int gridIdx = Vector3Int.FloorToInt(gridPos);
 
         if (gridIdx.x >= size || gridIdx.y >= size || gridIdx.z >= size)
@@ -91,12 +96,12 @@ public class BlockGrid : MonoBehaviour
             orientation = 0,
             rotation = 0,
         };
-        Instantiate(blockPrefabs[grid[gridIdx.z, gridIdx.y, gridIdx.x].type], transform.TransformPoint(new Vector3(gridIdx.x + .5f, gridIdx.y + .5f, gridIdx.z + .5f) * scale), Quaternion.identity, transform);
+        Instantiate(blockPrefabs[grid[gridIdx.z, gridIdx.y, gridIdx.x].type], transform.TransformPoint(new Vector3(gridIdx.x + .5f, gridIdx.y + .5f, gridIdx.z + .5f) * scale - origin), e.target.transform.rotation, transform);
     }
 
     private void OnPointerDelete(object sender, PointerEventArgs e)
     {
-        Vector3 gridPos = transform.InverseTransformPoint(rightPointer.transform.TransformPoint(Vector3.forward * (e.distance + 0.001f))) / (scale);
+        Vector3 gridPos = (transform.InverseTransformPoint(rightPointer.transform.TransformPoint(Vector3.forward * (e.distance + 0.01f))) + origin ) / scale;
         Vector3Int gridIdx = Vector3Int.FloorToInt(gridPos);
 
         if (gridIdx == new Vector3Int(size/2, size/2, size/2))
