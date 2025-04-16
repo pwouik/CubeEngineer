@@ -58,6 +58,22 @@
       "type": "boolean"
     },
     {
+      "name": "/actions/default/in/liftUp",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/default/in/liftDown",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/default/in/selectNext",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/default/in/selectPrevious",
+      "type": "boolean"
+    },
+    {
       "name": "/actions/default/out/Haptic",
       "type": "vibration"
     },
