@@ -22,13 +22,15 @@ public class BlockGrid : MonoBehaviour
     [SerializeField] private SteamVR_LaserPointer rightPointer;
 
     public SteamVR_Action_Vector2 rotateGrid = SteamVR_Input.GetVector2Action("rotate");
-    public float rotationSpeed = 100f;
+    public SteamVR_Action_Boolean play = SteamVR_Input.GetBooleanAction("play");
 
     private float scale = 0.2f;
+
+    private Vector3 startPos;
     private Vector2 lastPos = Vector2.zero;
     private Vector3 origin;
 
-
+    private Rigidbody rb;
     private Element[,,] grid;
 
     private void Awake()
@@ -37,31 +39,51 @@ public class BlockGrid : MonoBehaviour
         rightPointer.PointerClick += OnPointerDelete;
     }
 
-    void Start()
+    private void Start()
     {
-        Rigidbody rb = GetComponent<Rigidbody>();
-        rb.isKinematic = true;
-        grid = new Element[size, size, size];
-        scale = blockPrefabs[0].transform.localScale.x;
-        origin = new Vector3(size / 2 + .5f, size / 2 + .5f, size / 2 + .5f) * scale;
-        Instantiate(blockPrefabs[1], transform.TransformPoint(Vector3.zero), Quaternion.identity, transform);
+        startPos = transform.position;
+        rb = GetComponent<Rigidbody>();
 
-        /*for (int x = 0; x < size; x++)
-            for (int y = 0; y < size; y++)
-                for (int z = 0; z < size; z++)
-                {
-                    grid[z, y, x] = new Element()
-                    {
-                        type = (short)Math.Max(0, UnityEngine.Random.Range(0, blockPrefabs.Count + 16) - 16),
-                        orientation = 0,
-                        rotation = 0,
-                    };
-                    if (grid[z, y, x].type != 0)
-                        Instantiate(blockPrefabs[grid[z, y, x].type], transform.TransformPoint(new Vector3(x + .5f, y + .5f, z + .5f) * scale), Quaternion.identity, transform);
-                }*/
+        scale = blockPrefabs[0].transform.localScale.x;
+
+        origin = new Vector3(size / 2 + .5f, size / 2 + .5f, size / 2 + .5f) * scale;
+        grid = new Element[size, size, size];
+
+        for (int x = 0; x < size; x++)
+        for (int y = 0; y < size; y++)
+        for (int z = 0; z < size; z++)
+        {
+            grid[z, y, x] = new Element()
+            {
+                type = 0,
+                orientation = 0,
+                rotation = 0,
+            };
+        }
+
+        grid[size / 2, size / 2, size / 2] = new Element()
+        {
+            type = 2,
+            orientation = 0,
+            rotation = 0,
+        };
+        Instantiate(blockPrefabs[grid[size / 2, size / 2, size / 2].type], transform.TransformPoint(Vector3.zero), Quaternion.identity, transform);
     }
 
-    void Update()
+    private void Update()
+    {
+        RotateGrid();
+
+        rb.isKinematic = !play.GetState(SteamVR_Input_Sources.RightHand);
+
+        if (play.GetStateUp(SteamVR_Input_Sources.RightHand))
+        {
+            transform.position = startPos;
+            transform.rotation = Quaternion.identity;
+        }
+    }
+
+    private void RotateGrid()
     {
         Vector2 inputRight = rotateGrid.GetAxis(SteamVR_Input_Sources.RightHand);
         Vector2 inputLeft = rotateGrid.GetAxis(SteamVR_Input_Sources.LeftHand);
@@ -83,8 +105,9 @@ public class BlockGrid : MonoBehaviour
 
     private void OnPointerClick(object sender, PointerEventArgs e)
     {
+        if (play.GetState(SteamVR_Input_Sources.RightHand)) return;
+
         Vector3 gridPos = (transform.InverseTransformPoint(leftPointer.transform.TransformPoint(Vector3.forward * (e.distance - 0.01f))) + origin) / scale;
-        Debug.Log(gridPos);
         Vector3Int gridIdx = Vector3Int.FloorToInt(gridPos);
 
         if (gridIdx.x >= size || gridIdx.y >= size || gridIdx.z >= size)
@@ -92,7 +115,7 @@ public class BlockGrid : MonoBehaviour
 
         grid[gridIdx.z, gridIdx.y, gridIdx.x] = new Element()
         {
-            type = 2,
+            type = 1,
             orientation = 0,
             rotation = 0,
         };
@@ -101,17 +124,27 @@ public class BlockGrid : MonoBehaviour
 
     private void OnPointerDelete(object sender, PointerEventArgs e)
     {
+        if (play.GetState(SteamVR_Input_Sources.RightHand)) return;
+
         Vector3 gridPos = (transform.InverseTransformPoint(rightPointer.transform.TransformPoint(Vector3.forward * (e.distance + 0.01f))) + origin ) / scale;
         Vector3Int gridIdx = Vector3Int.FloorToInt(gridPos);
 
+        Debug.Log(gridIdx);
         if (gridIdx == new Vector3Int(size/2, size/2, size/2))
             return;
-
         foreach (Transform child in transform) 
         {
-            Vector3Int index = Vector3Int.FloorToInt(child.localPosition / scale);
+            Vector3Int index = Vector3Int.FloorToInt((child.localPosition + origin) / scale);
+            Debug.Log(index);
             if (index == gridIdx)
             {
+
+                grid[gridIdx.z, gridIdx.y, gridIdx.x] = new Element()
+                {
+                    type = 0,
+                    orientation = 0,
+                    rotation = 0,
+                };
                 Destroy(child.gameObject);
             }
         }

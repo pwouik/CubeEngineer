@@ -53,6 +53,15 @@ MonoBehaviour:
   - {fileID: 4278979432399064431, guid: 948b549f8e4acbda6b5ceda70215fc24, type: 3}
   - {fileID: 253506917954113019, guid: 68161473d71d6a251a0506094967a2c6, type: 3}
   size: 4
+  leftPointer: {fileID: 0}
+  rightPointer: {fileID: 0}
+  rotateGrid:
+    actionPath: /actions/default/in/rotate
+    needsReinit: 0
+  play:
+    actionPath: /actions/default/in/play
+    needsReinit: 0
+  rotationSpeed: 100
 --- !u!114 &6385607979478359381
 MonoBehaviour:
   m_ObjectHideFlags: 0
